@@ -12,7 +12,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     // Anchor that always exists where response will appear
     const responseAnchorRef = useRef<HTMLDivElement | null>(null);
     // The inner response box (scrolls to bottom as text grows)
-    const responseBoxRef = useRef<HTMLDivElement | null>(null);
+    // const responseBoxRef = useRef<HTMLDivElement | null>(null);
 
     // Helper: find nearest scrollable ancestor (falls back to window/document)
     const findScrollableAncestor = (node: HTMLElement | null): HTMLElement | Document => {
@@ -51,13 +51,13 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         }
 
         // Also keep the inner response box scrolled to bottom so streaming text stays visible
-        if (responseBoxRef.current) {
-            // Use a tiny timeout to allow DOM update to happen before adjusting scroll
-            requestAnimationFrame(() => {
-                const box = responseBoxRef.current!;
-                box.scrollTop = box.scrollHeight;
-            });
-        }
+        // if (responseBoxRef.current) {
+        //     // Use a tiny timeout to allow DOM update to happen before adjusting scroll
+        //     requestAnimationFrame(() => {
+        //         const box = responseBoxRef.current!;
+        //         box.scrollTop = box.scrollHeight;
+        //     });
+        // }
     }, [response, loading]);
 
     const handleStart = () => {
@@ -88,7 +88,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         setResponse('');
 
         try {
-            const res = await fetch('http://localhost:5000/api/chat', {
+            const res = await fetch('https://backend-8rwr.onrender.com/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -235,7 +235,8 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 response && (
                     <div>
                         <strong>AI says:</strong>
-                        <div ref={responseBoxRef} style={styles.responseBox}>{response}</div>
+                        {/* <div ref={responseBoxRef} style={styles.responseBox}>{response}</div> */}
+                        <div style={styles.responseBox}>{response}</div>
                     </div>
                 )
             )}
@@ -325,3 +326,4 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
