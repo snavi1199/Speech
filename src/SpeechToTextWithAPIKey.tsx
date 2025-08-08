@@ -95,8 +95,8 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: transcript,
-                    role: role.trim(),
-                    apiKey: apiKey.trim(),
+                    role: defaultRole.trim(),
+                    apiKey: secretApiKey.trim(),
                 }),
             });
 
@@ -328,5 +328,6 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
