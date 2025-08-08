@@ -8,7 +8,6 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const [role, setRole] = useState('');
     const [apiKey, setApiKey] = useState('');
     const { transcript, listening, resetTranscript } = useSpeechRecognition();
-    const secretApiKey = `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`;
     const defaultRole = `Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang`;
 
     // Anchor that always exists where response will appear
@@ -80,7 +79,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             setError('Please enter your role first.');
             return;
         }
-        if (!secretApiKey.trim()) {
+        if (!apiKey.trim()) {
             setError('Please enter your API key.');
             return;
         }
@@ -96,7 +95,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 body: JSON.stringify({
                     prompt: transcript,
                     role: defaultRole.trim(),
-                    apiKey: secretApiKey.trim(),
+                    apiKey: apiKey.trim(),
                 }),
             });
 
@@ -172,7 +171,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                     <strong>API Key:</strong>
                     <input
                         type="password"
-                        value={secretApiKey || apiKey}
+                        value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
                         placeholder="Enter your API key"
                         style={styles.input}
@@ -328,6 +327,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
