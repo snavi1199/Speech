@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const SpeechToTextWithAPIKey: React.FC = () => {
@@ -8,6 +8,57 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const [role, setRole] = useState('');
     const [apiKey, setApiKey] = useState('');
     const { transcript, listening, resetTranscript } = useSpeechRecognition();
+
+    // Anchor that always exists where response will appear
+    const responseAnchorRef = useRef<HTMLDivElement | null>(null);
+    // The inner response box (scrolls to bottom as text grows)
+    const responseBoxRef = useRef<HTMLDivElement | null>(null);
+
+    // Helper: find nearest scrollable ancestor (falls back to window/document)
+    const findScrollableAncestor = (node: HTMLElement | null): HTMLElement | Document => {
+        if (!node) return document;
+        let current: HTMLElement | null = node.parentElement;
+        while (current) {
+            const style = getComputedStyle(current);
+            const overflowY = style.overflowY;
+            if (/(auto|scroll|overlay)/.test(overflowY) && current.scrollHeight > current.clientHeight) {
+                return current;
+            }
+            current = current.parentElement;
+        }
+        return document;
+    };
+
+    // Scroll when loading starts or response updates
+    useEffect(() => {
+        // Only scroll when there's something to show (either loading while streaming or after response)
+        if (!responseAnchorRef.current) return;
+
+        // Scroll the nearest scrollable ancestor so the anchor is visible
+        const scrollable = findScrollableAncestor(responseAnchorRef.current);
+        const anchorEl = responseAnchorRef.current;
+        const anchorRect = anchorEl.getBoundingClientRect();
+
+        if (scrollable === document) {
+            // page-level scroll
+            const top = anchorRect.top + window.scrollY - 24; // small offset
+            window.scrollTo({ top, behavior: 'smooth' });
+        } else {
+            const sc = scrollable as HTMLElement;
+            const scRect = sc.getBoundingClientRect();
+            const relativeTop = anchorRect.top - scRect.top + sc.scrollTop - 24;
+            sc.scrollTo({ top: relativeTop, behavior: 'smooth' });
+        }
+
+        // Also keep the inner response box scrolled to bottom so streaming text stays visible
+        if (responseBoxRef.current) {
+            // Use a tiny timeout to allow DOM update to happen before adjusting scroll
+            requestAnimationFrame(() => {
+                const box = responseBoxRef.current!;
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+    }, [response, loading]);
 
     const handleStart = () => {
         resetTranscript();
@@ -37,7 +88,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         setResponse('');
 
         try {
-            const res = await fetch('https://backend-8rwr.onrender.com/api/chat', {
+            const res = await fetch('http://localhost:5000/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -49,7 +100,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
             const contentType = res.headers.get('content-type') || '';
 
-            // If backend sends JSON (non-stream)
+            // Non-stream JSON response
             if (contentType.includes('application/json')) {
                 const data = await res.json();
                 setResponse(data.response || JSON.stringify(data));
@@ -57,7 +108,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 return;
             }
 
-            // Otherwise, handle as streaming response
+            // Streaming response
             if (!res.body) {
                 throw new Error('No response body from server');
             }
@@ -78,14 +129,13 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                     processedText = chunk
                         .split('\n')
                         .filter(line => line.trim() && !line.includes('[DONE]'))
-                        .map(line => line.replace(/^data:\s*/, ''))
-                        .join('');
+                        .map(line => line.replace(/^data:\s*/, ' '))
+                        .join(' ');
                 }
 
                 fullText += processedText;
-                setResponse(prev => prev + processedText);
+                setResponse(fullText); // triggers useEffect which scrolls
             }
-
         } catch (err) {
             console.error('Streaming error:', err);
             setError('Failed to get response from AI. Please try again.');
@@ -114,6 +164,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 <strong>Status:</strong> {listening ? '🎤 Listening...' : '🛑 Stopped'}
             </p>
 
+            {/* API Key */}
             <div style={styles.inputGroup}>
                 <label style={styles.label}>
                     <strong>API Key:</strong>
@@ -127,6 +178,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </label>
             </div>
 
+            {/* Role */}
             <div style={styles.inputGroup}>
                 <label style={styles.label}>
                     <strong>Role:</strong>
@@ -140,6 +192,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </label>
             </div>
 
+            {/* Buttons */}
             <div style={styles.buttonGroup}>
                 <button style={styles.button} onClick={handleStart} disabled={listening}>
                     Start Talking
@@ -159,6 +212,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </button>
             </div>
 
+            {/* Transcript */}
             <div>
                 <strong>You said:</strong>
                 <div style={styles.transcriptBox}>
@@ -168,14 +222,20 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
             <hr style={styles.divider} />
 
+            {/* Anchor - always present so scroll target exists */}
+            <div ref={responseAnchorRef} aria-hidden style={{ height: 0 }} />
+
+            {/* Error */}
             {error && <p style={styles.error}>{error}</p>}
+
+            {/* Loading / Response */}
             {loading ? (
                 <p>🤖 AI is thinking...</p>
             ) : (
                 response && (
                     <div>
                         <strong>AI says:</strong>
-                        <div style={styles.responseBox}>{response}</div>
+                        <div ref={responseBoxRef} style={styles.responseBox}>{response}</div>
                     </div>
                 )
             )}
@@ -243,12 +303,16 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: '5px',
         minHeight: '60px',
         marginTop: '5px',
+        wordBreak: 'break-word',
     },
     responseBox: {
         background: '#e2ffe2',
         padding: '10px',
         borderRadius: '5px',
         whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        maxHeight: '300px',
+        overflowY: 'auto',
         marginTop: '5px',
     },
     divider: {
