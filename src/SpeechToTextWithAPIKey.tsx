@@ -148,9 +148,9 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     };
 
     const handleClear = () => {
-        SpeechRecognition.stopListening();
+        // SpeechRecognition.stopListening();
         resetTranscript();
-        setResponse('');
+        // setResponse('');
         setError('');
     };
 
@@ -327,6 +327,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
