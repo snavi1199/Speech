@@ -76,11 +76,11 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             setError('Please say something before asking AI.');
             return;
         }
-        if (!role.trim()) {
+        if (!defaultRole.trim()) {
             setError('Please enter your role first.');
             return;
         }
-        if (!apiKey.trim()) {
+        if (!secretApiKey.trim()) {
             setError('Please enter your API key.');
             return;
         }
@@ -328,6 +328,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
