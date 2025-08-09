@@ -142,7 +142,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             setError('Failed to get response from AI. Please try again.');
         } finally {
             setLoading(false);
-            resetTranscript();
+            // resetTranscript();
             SpeechRecognition.startListening({ continuous: true });
         }
     };
@@ -342,6 +342,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
