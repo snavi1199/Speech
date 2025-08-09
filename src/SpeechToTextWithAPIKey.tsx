@@ -170,7 +170,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             <div style={{display: 'flex'}} >
                 <h1 style={styles.heading}>🎙 AI Voice Chat</h1>
                 <button
-                    style={{ ...styles.button, background: '#dc3545' }}
+                    style={{  background: '#dc3545', color: '#fff', border: 'none',padding: '4px 8px', borderRadius: '4px', fontSize: '12px',cursor: 'pointer' }}
                     onClick={handleListenStop}
                 >
                     Stop Listening
@@ -342,6 +342,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
