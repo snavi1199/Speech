@@ -69,7 +69,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     };
 
     const handleStop = async () => {
-        SpeechRecognition.stopListening();
+       // SpeechRecognition.stopListening();
 
         if (!transcript.trim()) {
             setError('Please say something before asking AI.');
@@ -147,6 +147,13 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         }
     };
 
+    const handleListenStop = () => {
+        SpeechRecognition.stopListening();
+        resetTranscript();
+        setResponse('');
+        setError('');
+    };
+
     const handleClear = () => {
         // SpeechRecognition.stopListening();
         resetTranscript();
@@ -160,7 +167,15 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.heading}>🎙 AI Voice Chat</h1>
+            <div style={{display: 'flex'}} >
+                <h1 style={styles.heading}>🎙 AI Voice Chat</h1>
+                <button
+                    style={{ ...styles.button, background: '#dc3545' }}
+                    onClick={handleListenStop}
+                >
+                    Stop Listening
+                </button>
+            </div>
             <p style={styles.status}>
                 <strong>Status:</strong> {listening ? '🎤 Listening...' : '🛑 Stopped'}
             </p>
@@ -327,6 +342,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
