@@ -1,21 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import APIKeyGuide from './APIKeyGuide';
 
 const SpeechToTextWithAPIKey: React.FC = () => {
     const [response, setResponse] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [role, setRole] = useState('');
+    const [role, setRole] = useState(`Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang - Humanize answer`);
     const [apiKey, setApiKey] = useState('');
+    const [showKeyGuide, setShowKeyGuide] = useState(false);
+
     const { transcript, listening, resetTranscript } = useSpeechRecognition();
-    const defaultRole = `Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang`;
 
-    // Anchor that always exists where response will appear
     const responseAnchorRef = useRef<HTMLDivElement | null>(null);
-    // The inner response box (scrolls to bottom as text grows)
-    // const responseBoxRef = useRef<HTMLDivElement | null>(null);
 
-    // Helper: find nearest scrollable ancestor (falls back to window/document)
     const findScrollableAncestor = (node: HTMLElement | null): HTMLElement | Document => {
         if (!node) return document;
         let current: HTMLElement | null = node.parentElement;
@@ -30,19 +28,13 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         return document;
     };
 
-    // Scroll when loading starts or response updates
     useEffect(() => {
-        // Only scroll when there's something to show (either loading while streaming or after response)
         if (!responseAnchorRef.current) return;
-
-        // Scroll the nearest scrollable ancestor so the anchor is visible
         const scrollable = findScrollableAncestor(responseAnchorRef.current);
-        const anchorEl = responseAnchorRef.current;
-        const anchorRect = anchorEl.getBoundingClientRect();
+        const anchorRect = responseAnchorRef.current.getBoundingClientRect();
 
         if (scrollable === document) {
-            // page-level scroll
-            const top = anchorRect.top + window.scrollY - 24; // small offset
+            const top = anchorRect.top + window.scrollY - 24;
             window.scrollTo({ top, behavior: 'smooth' });
         } else {
             const sc = scrollable as HTMLElement;
@@ -50,15 +42,6 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             const relativeTop = anchorRect.top - scRect.top + sc.scrollTop - 24;
             sc.scrollTo({ top: relativeTop, behavior: 'smooth' });
         }
-
-        // Also keep the inner response box scrolled to bottom so streaming text stays visible
-        // if (responseBoxRef.current) {
-        //     // Use a tiny timeout to allow DOM update to happen before adjusting scroll
-        //     requestAnimationFrame(() => {
-        //         const box = responseBoxRef.current!;
-        //         box.scrollTop = box.scrollHeight;
-        //     });
-        // }
     }, [response, loading]);
 
     const handleStart = () => {
@@ -69,13 +52,11 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     };
 
     const handleStop = async () => {
-       // SpeechRecognition.stopListening();
-
         if (!transcript.trim()) {
             setError('Please say something before asking AI.');
             return;
         }
-        if (!defaultRole.trim()) {
+        if (!role.trim()) {
             setError('Please enter your role first.');
             return;
         }
@@ -94,25 +75,25 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: transcript,
-                    role: defaultRole.trim(),
+                    role: role.trim(),
                     apiKey: apiKey.trim(),
                 }),
             });
 
             const contentType = res.headers.get('content-type') || '';
 
-            // Non-stream JSON response
             if (contentType.includes('application/json')) {
                 const data = await res.json();
-                setResponse(data.response || JSON.stringify(data));
-                setLoading(false);
+                if (data.response) {
+                    setResponse(data.response);
+                    resetTranscript(); // ✅ Reset only when success
+                } else {
+                    setError('No valid response from AI.');
+                }
                 return;
             }
 
-            // Streaming response
-            if (!res.body) {
-                throw new Error('No response body from server');
-            }
+            if (!res.body) throw new Error('No response body from server');
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder('utf-8');
@@ -125,7 +106,6 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 const chunk = decoder.decode(value, { stream: true });
                 let processedText = chunk;
 
-                // Handle SSE style "data:" format
                 if (chunk.includes('data:')) {
                     processedText = chunk
                         .split('\n')
@@ -135,17 +115,96 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 }
 
                 fullText += processedText;
-                setResponse(fullText); // triggers useEffect which scrolls
+                setResponse(fullText);
             }
+
+            // ✅ Reset transcript only after we actually got some AI response
+            if (fullText.trim()) {
+                resetTranscript();
+            }
+
         } catch (err) {
             console.error('Streaming error:', err);
             setError('Failed to get response from AI. Please try again.');
+            // ❌ Do not reset transcript here so the user can retry
         } finally {
             setLoading(false);
-            resetTranscript();
             SpeechRecognition.startListening({ continuous: true });
         }
     };
+
+
+    // const handleStop = async () => {
+    //     if (!transcript.trim()) {
+    //         setError('Please say something before asking AI.');
+    //         return;
+    //     }
+    //     if (!defaultRole.trim()) {
+    //         setError('Please enter your role first.');
+    //         return;
+    //     }
+    //     if (!apiKey.trim()) {
+    //         setError('Please enter your API key.');
+    //         return;
+    //     }
+
+    //     setLoading(true);
+    //     setError('');
+    //     setResponse('');
+
+    //     try {
+    //         const res = await fetch('https://backend-8rwr.onrender.com/api/chat', {
+    //             method: 'POST',
+    //             headers: { 'Content-Type': 'application/json' },
+    //             body: JSON.stringify({
+    //                 prompt: transcript,
+    //                 role: defaultRole.trim(),
+    //                 apiKey: apiKey.trim(),
+    //             }),
+    //         });
+
+    //         const contentType = res.headers.get('content-type') || '';
+
+    //         if (contentType.includes('application/json')) {
+    //             const data = await res.json();
+    //             setResponse(data.response || JSON.stringify(data));
+    //             setLoading(false);
+    //             return;
+    //         }
+
+    //         if (!res.body) throw new Error('No response body from server');
+
+    //         const reader = res.body.getReader();
+    //         const decoder = new TextDecoder('utf-8');
+    //         let fullText = '';
+
+    //         while (true) {
+    //             const { done, value } = await reader.read();
+    //             if (done) break;
+
+    //             const chunk = decoder.decode(value, { stream: true });
+    //             let processedText = chunk;
+
+    //             if (chunk.includes('data:')) {
+    //                 processedText = chunk
+    //                     .split('\n')
+    //                     .filter(line => line.trim() && !line.includes('[DONE]'))
+    //                     .map(line => line.replace(/^data:\s*/, ' '))
+    //                     .join(' ');
+    //             }
+
+    //             fullText += processedText;
+    //             setResponse(fullText);
+    //         }
+    //     } catch (err) {
+    //         console.error('Streaming error:', err);
+    //         setError('Failed to get response from AI. Please try again.');
+    //     } finally {
+    //         setLoading(false);
+    //         resetTranscript();
+    //         SpeechRecognition.startListening({ continuous: true });
+    //     }
+    // };
 
     const handleListenStop = () => {
         SpeechRecognition.stopListening();
@@ -155,9 +214,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     };
 
     const handleClear = () => {
-        // SpeechRecognition.stopListening();
         resetTranscript();
-        // setResponse('');
         setError('');
     };
 
@@ -167,20 +224,37 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
     return (
         <div style={styles.container}>
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}} >
+            {showKeyGuide && <APIKeyGuide onClose={() => setShowKeyGuide(false)} />}
+
+            {/* Top bar */}
+            <div style={styles.topBar}>
                 <h1 style={styles.heading}>🎙 AI Voice Chat</h1>
-                <button
-                    style={{  background: '#dc3545', color: '#fff', border: 'none',padding: '4px 8px', borderRadius: '4px', fontSize: '12px',cursor: 'pointer', height: '30px', marginLeft: '20px' }}
-                    onClick={handleListenStop}
-                >
-                    Stop Listening
-                </button>
+                <div style={styles.topBarButtons}>
+                    <button
+                        style={styles.stopButton}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.boxShadow = '0px 4px 12px rgba(217, 4, 41, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = 'none';
+                        }}
+                        onClick={handleListenStop}
+                    >
+                        Stop Listening
+                    </button>
+                    <button style={styles.getKeyButton} onClick={() => setShowKeyGuide(true)}>
+                        Get API Key
+                    </button>
+                </div>
             </div>
+
             <p style={styles.status}>
                 <strong>Status:</strong> {listening ? '🎤 Listening...' : '🛑 Stopped'}
             </p>
 
-            {/* API Key */}
+            {/* API Key Input */}
             <div style={styles.inputGroup}>
                 <label style={styles.label}>
                     <strong>API Key:</strong>
@@ -194,13 +268,13 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </label>
             </div>
 
-            {/* Role */}
+            {/* Role Input */}
             <div style={styles.inputGroup}>
                 <label style={styles.label}>
                     <strong>Role:</strong>
                     <input
                         type="text"
-                        value={defaultRole || role}
+                        value={role}
                         onChange={(e) => setRole(e.target.value)}
                         placeholder="e.g., Full Stack Developer"
                         style={styles.input}
@@ -208,7 +282,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </label>
             </div>
 
-            {/* Buttons */}
+            {/* Control Buttons */}
             <div style={styles.buttonGroup}>
                 <button style={styles.button} onClick={handleStart} disabled={listening}>
                     Start Talking
@@ -220,15 +294,12 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 >
                     Ask AI
                 </button>
-                <button
-                    style={{ ...styles.button, background: '#dc3545' }}
-                    onClick={handleClear}
-                >
+                <button style={{ ...styles.button, background: '#dc3545' }} onClick={handleClear}>
                     Clear
                 </button>
             </div>
 
-            {/* Transcript */}
+            {/* Transcript Display */}
             <div>
                 <strong>You said:</strong>
                 <div style={styles.transcriptBox}>
@@ -238,20 +309,16 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
             <hr style={styles.divider} />
 
-            {/* Anchor - always present so scroll target exists */}
             <div ref={responseAnchorRef} aria-hidden style={{ height: 0 }} />
 
-            {/* Error */}
             {error && <p style={styles.error}>{error}</p>}
 
-            {/* Loading / Response */}
             {loading ? (
                 <p>🤖 AI is thinking...</p>
             ) : (
                 response && (
                     <div>
                         <strong>AI says:</strong>
-                        {/* <div ref={responseBoxRef} style={styles.responseBox}>{response}</div> */}
                         <div style={styles.responseBox}>{response}</div>
                     </div>
                 )
@@ -260,7 +327,6 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     );
 };
 
-// Styles
 const styles: { [key: string]: React.CSSProperties } = {
     container: {
         maxWidth: '600px',
@@ -271,10 +337,43 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: '10px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         width: '90%',
+        position: 'relative',
+    },
+    topBar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1rem',
     },
     heading: {
-        textAlign: 'center',
+        fontSize: '1.5rem',
+        margin: 0,
         color: '#333',
+    },
+    topBarButtons: {
+        display: 'flex',
+        gap: '10px',
+    },
+    stopButton: {
+        background: 'linear-gradient(90deg, #ff4b5c, #d90429)',
+        color: '#fff',
+        border: 'none',
+        padding: '6px 16px',
+        borderRadius: '20px',
+        fontSize: '14px',
+        cursor: 'pointer',
+        height: '34px',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    },
+    getKeyButton: {
+        background: '#6c63ff',
+        color: '#fff',
+        border: 'none',
+        padding: '6px 16px',
+        borderRadius: '20px',
+        fontSize: '14px',
+        cursor: 'pointer',
+        height: '34px',
     },
     status: {
         textAlign: 'center',
@@ -342,14 +441,3 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
-
-
-
-
-
-
-
-
-
-
-
