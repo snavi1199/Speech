@@ -228,7 +228,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
             {/* Top bar */}
             <div style={styles.topBar}>
-                <h1 style={styles.heading}>🎙 AI Voice Chat</h1>
+                <h1 style={styles.heading}>🎙 AI Help</h1>
                 <div style={styles.topBarButtons}>
                     <button
                         style={styles.stopButton}
@@ -358,22 +358,22 @@ const styles: { [key: string]: React.CSSProperties } = {
         background: 'linear-gradient(90deg, #ff4b5c, #d90429)',
         color: '#fff',
         border: 'none',
-        padding: '6px 16px',
+        padding: '5px 16px',
         borderRadius: '20px',
         fontSize: '14px',
         cursor: 'pointer',
-        height: '34px',
+        height: '35px',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
     },
     getKeyButton: {
         background: '#6c63ff',
         color: '#fff',
         border: 'none',
-        padding: '6px 16px',
+        padding: '5px 16px',
         borderRadius: '20px',
         fontSize: '14px',
         cursor: 'pointer',
-        height: '34px',
+        height: '35px',
     },
     status: {
         textAlign: 'center',
@@ -441,3 +441,4 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
