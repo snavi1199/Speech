@@ -302,7 +302,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                         }}
                         onClick={handleListenStop}
                     >
-                        Stop Listening
+                        Stop
                     </button>
                     <button style={styles.getKeyButton} onClick={() => setShowKeyGuide(true)}>
                         Get API Key
@@ -394,7 +394,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     container: {
         maxWidth: '600px',
         margin: '2rem auto',
-        padding: '2rem',
+        padding: '1rem',
         fontFamily: 'Arial, sans-serif',
         background: '#ffffff',
         borderRadius: '10px',
@@ -521,3 +521,4 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
