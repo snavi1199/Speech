@@ -74,6 +74,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         setLoading(true);
         setError('');
         setResponse('');
+        resetTranscript(); // Reset transcript when click ask ai help
 
         try {
             const res = await fetch('https://backend-8rwr.onrender.com/api/chat', {
@@ -92,7 +93,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 const data = await res.json();
                 if (data.response) {
                     setResponse(data.response);
-                    resetTranscript(); // ✅ Reset only when success
+                    // resetTranscript(); // ✅ Reset only when success(commented out)
                 } else {
                     setError('No valid response from AI.');
                 }
@@ -125,9 +126,9 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             }
 
             // ✅ Reset transcript only after we actually got some AI response
-            if (fullText.trim()) {
-                resetTranscript();
-            }
+            // if (fullText.trim()) {
+            //     resetTranscript();
+            // }
 
         } catch (err) {
             console.error('Streaming error:', err);
@@ -521,6 +522,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
 
 
