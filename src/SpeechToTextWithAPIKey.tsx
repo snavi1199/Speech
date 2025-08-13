@@ -10,6 +10,12 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const [apiKey, setApiKey] = useState('');
     const [showKeyGuide, setShowKeyGuide] = useState(false);
 
+    const [fullTranscript, setFullTranscript] = useState(""); // ✅ Store all history
+    const [showSaveModal, setShowSaveModal] = useState(false); // ✅ Modal visibility
+    const [sectionName, setSectionName] = useState(""); // ✅ Section name input
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyTab, setHistoryTab] = useState<'current' | 'old'>('current');
+
     const { transcript, listening, resetTranscript } = useSpeechRecognition();
 
     const responseAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -129,85 +135,16 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             // ❌ Do not reset transcript here so the user can retry
         } finally {
             setLoading(false);
+            setFullTranscript((prev) => {
+                return transcript ? prev + (prev ? "--" : "") + transcript : prev;
+            });
             SpeechRecognition.startListening({ continuous: true });
         }
     };
 
-
-    // const handleStop = async () => {
-    //     if (!transcript.trim()) {
-    //         setError('Please say something before asking AI.');
-    //         return;
-    //     }
-    //     if (!defaultRole.trim()) {
-    //         setError('Please enter your role first.');
-    //         return;
-    //     }
-    //     if (!apiKey.trim()) {
-    //         setError('Please enter your API key.');
-    //         return;
-    //     }
-
-    //     setLoading(true);
-    //     setError('');
-    //     setResponse('');
-
-    //     try {
-    //         const res = await fetch('https://backend-8rwr.onrender.com/api/chat', {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify({
-    //                 prompt: transcript,
-    //                 role: defaultRole.trim(),
-    //                 apiKey: apiKey.trim(),
-    //             }),
-    //         });
-
-    //         const contentType = res.headers.get('content-type') || '';
-
-    //         if (contentType.includes('application/json')) {
-    //             const data = await res.json();
-    //             setResponse(data.response || JSON.stringify(data));
-    //             setLoading(false);
-    //             return;
-    //         }
-
-    //         if (!res.body) throw new Error('No response body from server');
-
-    //         const reader = res.body.getReader();
-    //         const decoder = new TextDecoder('utf-8');
-    //         let fullText = '';
-
-    //         while (true) {
-    //             const { done, value } = await reader.read();
-    //             if (done) break;
-
-    //             const chunk = decoder.decode(value, { stream: true });
-    //             let processedText = chunk;
-
-    //             if (chunk.includes('data:')) {
-    //                 processedText = chunk
-    //                     .split('\n')
-    //                     .filter(line => line.trim() && !line.includes('[DONE]'))
-    //                     .map(line => line.replace(/^data:\s*/, ' '))
-    //                     .join(' ');
-    //             }
-
-    //             fullText += processedText;
-    //             setResponse(fullText);
-    //         }
-    //     } catch (err) {
-    //         console.error('Streaming error:', err);
-    //         setError('Failed to get response from AI. Please try again.');
-    //     } finally {
-    //         setLoading(false);
-    //         resetTranscript();
-    //         SpeechRecognition.startListening({ continuous: true });
-    //     }
-    // };
-
     const handleListenStop = () => {
         SpeechRecognition.stopListening();
+        setShowSaveModal(true); // ✅ Show modal to enter section name
         resetTranscript();
         setResponse('');
         setError('');
@@ -216,15 +153,138 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const handleClear = () => {
         resetTranscript();
         setError('');
+        setFullTranscript((prev) => {
+            const newText = transcript.replace(prev, "").trim();
+            return newText ? prev + (prev ? "--" : "") + newText : prev;
+        });
     };
 
     if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
         return <div>Your browser does not support speech recognition.</div>;
     }
 
+    const handleSaveSection = () => {
+        const trimmedTranscript = fullTranscript.trim();
+        const now = new Date();
+        const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const safeSectionName = sectionName.trim() ? sectionName.trim().replace(/[^a-zA-Z0-9-_]/g, '_') : 'Transcript';
+        const fileName = `${safeSectionName}_${dateStr}.txt`;
+
+        const blob = new Blob([trimmedTranscript], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        setShowSaveModal(false);
+        setSectionName("");
+        setFullTranscript(""); // Clear the transcript after saving
+        resetTranscript();
+    };
+
     return (
         <div style={styles.container}>
             {showKeyGuide && <APIKeyGuide onClose={() => setShowKeyGuide(false)} />}
+            {showSaveModal && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.modalContent}>
+                        <h3>Save Transcript Section</h3>
+                        <input
+                            type="text"
+                            value={sectionName}
+                            onChange={(e) => setSectionName(e.target.value)}
+                            placeholder="Enter section name"
+                            style={styles.input}
+                        />
+                        {(!sectionName || !fullTranscript) && (
+                            <div style={{ color: '#888', fontSize: '0.95em', marginTop: '4px' }}>
+                                {!fullTranscript
+                                    ? 'No transcript present right now, unable to download.'
+                                    : 'Please enter a section name to enable download.'}
+                            </div>
+                        )}
+                        <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+                            <button
+                                style={{
+                                    ...styles.button,
+                                    background: (!sectionName || !fullTranscript) ? '#ccc' : styles.button.background,
+                                    color: (!sectionName || !fullTranscript) ? '#666' : styles.button.color,
+                                    cursor: (!sectionName || !fullTranscript) ? 'not-allowed' : styles.button.cursor,
+                                }}
+                                onClick={handleSaveSection}
+                                disabled={!sectionName || !fullTranscript}
+                            >
+                                Download
+                            </button>
+                            <button
+                                style={{ ...styles.button, background: "#dc3545" }}
+                                onClick={() => setShowSaveModal(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showHistoryModal && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.modalContent}>
+                        <h3>Chat History</h3>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                            <button
+                                onClick={() => setHistoryTab('current')}
+                                style={{
+                                    flex: 1,
+                                    background: historyTab === 'current' ? '#28a745' : '#ccc',
+                                    color: '#fff',
+                                    padding: '6px',
+                                    border: 'none',
+                                    borderRadius: '4px'
+                                }}
+                            >
+                                Current Chat
+                            </button>
+                            <button
+                                onClick={() => setHistoryTab('old')}
+                                disabled={true} // Old history is not implemented yet
+                                style={{
+                                    flex: 1,
+                                    background: historyTab === 'old' ? '#007bff' : '#ccc',
+                                    color: '#fff',
+                                    padding: '6px',
+                                    border: 'none',
+                                    borderRadius: '4px'
+                                }}
+                            >
+                                Old History
+                            </button>
+                        </div>
+                        {historyTab === 'current' ? (
+                            <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f4f4f4', padding: '10px', borderRadius: '5px' }}>
+                                {fullTranscript ? fullTranscript : <em>No speech recorded yet.</em>}
+                            </div>
+                        ) : (
+                            <div style={{ background: '#f4f4f4', padding: '10px', borderRadius: '5px' }}>
+                                <em>No old history yet.</em>
+                            </div>
+                        )}
+                        <div style={{ textAlign: 'right', marginTop: '10px' }}>
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
+                                style={{ background: '#dc3545', color: '#fff', padding: '6px 12px', border: 'none', borderRadius: '4px' }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Top bar */}
             <div style={styles.topBar}>
@@ -246,6 +306,9 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                     </button>
                     <button style={styles.getKeyButton} onClick={() => setShowKeyGuide(true)}>
                         Get API Key
+                    </button>
+                    <button style={{ ...styles.getKeyButton, background: '#ff9800' }} onClick={() => setShowHistoryModal(true)}>
+                        History
                     </button>
                 </div>
             </div>
@@ -331,7 +394,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     container: {
         maxWidth: '600px',
         margin: '2rem auto',
-        padding: '1rem',
+        padding: '2rem',
         fontFamily: 'Arial, sans-serif',
         background: '#ffffff',
         borderRadius: '10px',
@@ -438,7 +501,23 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: 'red',
         fontWeight: 'bold',
     },
+    modalOverlay: {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 999,
+    },
+    modalContent: {
+        background: "#fff",
+        padding: "20px",
+        borderRadius: "10px",
+        maxWidth: "400px",
+        width: "100%",
+        textAlign: "center",
+    },
 };
 
 export default SpeechToTextWithAPIKey;
-
