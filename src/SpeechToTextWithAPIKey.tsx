@@ -6,7 +6,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const [response, setResponse] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [role, setRole] = useState(`Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang - Humanize answer`);
+    const [role, setRole] = useState(`Coding in Data Structure Algorithm using Java - LeetCode problems think medium and hard - amazon dsa interview round`);
     const [apiKey, setApiKey] = useState('');
     const [showKeyGuide, setShowKeyGuide] = useState(false);
 
@@ -605,3 +605,4 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
