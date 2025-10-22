@@ -10,13 +10,18 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const [apiKey, setApiKey] = useState('');
     const [showKeyGuide, setShowKeyGuide] = useState(false);
 
-    const [fullTranscript, setFullTranscript] = useState(""); // ✅ Store all history
-    const [showSaveModal, setShowSaveModal] = useState(false); // ✅ Modal visibility
-    const [sectionName, setSectionName] = useState(""); // ✅ Section name input
+    const [fullTranscript, setFullTranscript] = useState("");
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [sectionName, setSectionName] = useState("");
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historyTab, setHistoryTab] = useState<'current' | 'old'>('current');
 
     const { transcript, listening, resetTranscript } = useSpeechRecognition();
+
+    // New approach: separate base (edited/saved) + live transcript
+    const [baseTranscript, setBaseTranscript] = useState(''); // holds the edited/saved base
+    const [isEditing, setIsEditing] = useState(false);
+    const [editableTranscript, setEditableTranscript] = useState('');
 
     const responseAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -51,14 +56,26 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     }, [response, loading]);
 
     const handleStart = () => {
+        // Start fresh live transcript
         resetTranscript();
         setError('');
         setResponse('');
         SpeechRecognition.startListening({ continuous: true });
     };
 
+    const getCombinedText = () => {
+        // When editing, use editable value
+        if (isEditing) return editableTranscript.trim();
+        // Not editing: use base + live transcript (live may be empty)
+        const live = transcript.trim();
+        if (baseTranscript && live) return (baseTranscript + ' ' + live).trim();
+        if (baseTranscript) return baseTranscript.trim();
+        return live;
+    };
+
     const handleStop = async () => {
-        if (!transcript.trim()) {
+        const currentText = getCombinedText();
+        if (!currentText.trim()) {
             setError('Please say something before asking AI.');
             return;
         }
@@ -74,14 +91,16 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         setLoading(true);
         setError('');
         setResponse('');
-        resetTranscript(); // Reset transcript when click ask ai help
+        resetTranscript();
+        setBaseTranscript(''); // Clear base transcript after sending to AI
+        setEditableTranscript(''); // Clear editable as well
 
         try {
             const res = await fetch('https://backend-8rwr.onrender.com/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt: transcript,
+                    prompt: currentText,
                     role: role.trim(),
                     apiKey: apiKey.trim(),
                 }),
@@ -93,10 +112,12 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 const data = await res.json();
                 if (data.response) {
                     setResponse(data.response);
-                    // resetTranscript(); // ✅ Reset only when success(commented out)
                 } else {
                     setError('No valid response from AI.');
                 }
+                setLoading(false);
+                // keep listening state as is (do not change)
+                setFullTranscript((prev) => prev + (prev ? "--" : "") + currentText);
                 return;
             }
 
@@ -125,27 +146,21 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 setResponse(fullText);
             }
 
-            // ✅ Reset transcript only after we actually got some AI response
-            // if (fullText.trim()) {
-            //     resetTranscript();
-            // }
+            setFullTranscript((prev) => prev + (prev ? "--" : "") + currentText);
 
         } catch (err) {
             console.error('Streaming error:', err);
             setError('Failed to get response from AI. Please try again.');
-            // ❌ Do not reset transcript here so the user can retry
         } finally {
             setLoading(false);
-            setFullTranscript((prev) => {
-                return transcript ? prev + (prev ? "--" : "") + transcript : prev;
-            });
+            // Keep listening after asking AI
             SpeechRecognition.startListening({ continuous: true });
         }
     };
 
     const handleListenStop = () => {
         SpeechRecognition.stopListening();
-        setShowSaveModal(true); // ✅ Show modal to enter section name
+        setShowSaveModal(true);
         resetTranscript();
         setResponse('');
         setError('');
@@ -154,10 +169,37 @@ const SpeechToTextWithAPIKey: React.FC = () => {
     const handleClear = () => {
         resetTranscript();
         setError('');
-        setFullTranscript((prev) => {
-            const newText = transcript.replace(prev, "").trim();
-            return newText ? prev + (prev ? "--" : "") + newText : prev;
-        });
+        setBaseTranscript('');
+        setEditableTranscript('');
+        setFullTranscript('');
+    };
+
+    // Edit toggle using baseTranscript to avoid overwrite issues
+    const handleEditToggle = () => {
+        if (!isEditing) {
+            // Enter edit mode
+            // Stop listening to avoid live updates
+            SpeechRecognition.stopListening();
+            // Pre-fill editable with current combined text (base + live)
+            const live = transcript.trim();
+            const combined = baseTranscript ? (baseTranscript + (live ? ' ' + live : '')).trim() : live;
+            setEditableTranscript(combined);
+            setIsEditing(true);
+        } else {
+            // Exit edit mode -> commit edited text into baseTranscript, reset live transcript and resume listening
+            const trimmed = editableTranscript.trim();
+            setBaseTranscript(trimmed);
+            resetTranscript(); // clear the live transcript buffer so new speech doesn't duplicate
+            setIsEditing(false);
+            // Small timeout sometimes helps the browser to start mic again reliably; optional
+            setTimeout(() => {
+                SpeechRecognition.startListening({ continuous: true });
+            }, 50);
+        }
+    };
+
+    const handleEditChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setEditableTranscript(e.target.value);
     };
 
     if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
@@ -168,7 +210,9 @@ const SpeechToTextWithAPIKey: React.FC = () => {
         const trimmedTranscript = fullTranscript.trim();
         const now = new Date();
         const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const safeSectionName = sectionName.trim() ? sectionName.trim().replace(/[^a-zA-Z0-9-_]/g, '_') : 'Transcript';
+        const safeSectionName = sectionName.trim()
+            ? sectionName.trim().replace(/[^a-zA-Z0-9-_]/g, '_')
+            : 'Transcript';
         const fileName = `${safeSectionName}_${dateStr}.txt`;
 
         const blob = new Blob([trimmedTranscript], { type: 'text/plain' });
@@ -184,13 +228,22 @@ const SpeechToTextWithAPIKey: React.FC = () => {
 
         setShowSaveModal(false);
         setSectionName("");
-        setFullTranscript(""); // Clear the transcript after saving
+        setFullTranscript("");
         resetTranscript();
+        setBaseTranscript('');
+        setEditableTranscript('');
     };
+
+    // Display text: if editing -> editableTextarea, else base + live
+    const displayText = isEditing
+        ? editableTranscript
+        : ((baseTranscript ? baseTranscript : '') + (transcript.trim() ? (baseTranscript ? ' ' : '') + transcript.trim() : '')).trim();
 
     return (
         <div style={styles.container}>
             {showKeyGuide && <APIKeyGuide onClose={() => setShowKeyGuide(false)} />}
+
+            {/* SAVE MODAL */}
             {showSaveModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.modalContent}>
@@ -202,13 +255,6 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                             placeholder="Enter section name"
                             style={styles.input}
                         />
-                        {(!sectionName || !fullTranscript) && (
-                            <div style={{ color: '#888', fontSize: '0.95em', marginTop: '4px' }}>
-                                {!fullTranscript
-                                    ? 'No transcript present right now, unable to download.'
-                                    : 'Please enter a section name to enable download.'}
-                            </div>
-                        )}
                         <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
                             <button
                                 style={{
@@ -233,6 +279,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </div>
             )}
 
+            {/* HISTORY MODAL */}
             {showHistoryModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.modalContent}>
@@ -253,7 +300,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setHistoryTab('old')}
-                                disabled={true} // Old history is not implemented yet
+                                disabled={true}
                                 style={{
                                     flex: 1,
                                     background: historyTab === 'old' ? '#007bff' : '#ccc',
@@ -287,7 +334,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </div>
             )}
 
-            {/* Top bar */}
+            {/* Top Bar */}
             <div style={styles.topBar}>
                 <h1 style={styles.heading}>🎙 AI Help</h1>
                 <div style={styles.topBarButtons}>
@@ -346,7 +393,7 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </label>
             </div>
 
-            {/* Control Buttons */}
+            {/* Buttons */}
             <div style={styles.buttonGroup}>
                 <button style={styles.button} onClick={handleStart} disabled={listening}>
                     Start Talking
@@ -363,12 +410,47 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                 </button>
             </div>
 
-            {/* Transcript Display */}
+            {/* Transcript Display with Edit Mode */}
             <div>
-                <strong>You said:</strong>
-                <div style={styles.transcriptBox}>
-                    {transcript || <em>Start speaking to see the transcript...</em>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>You said:</strong>
+                    {(displayText) && (
+                        <button
+                            style={{
+                                ...styles.button,
+                                background: isEditing ? '#17a2b8' : '#6c63ff',
+                                flex: 'none',
+                                padding: '5px 10px',
+                                fontSize: '0.85rem',
+                                borderRadius: '5px',
+                            }}
+                            onClick={handleEditToggle}
+                        >
+                            {isEditing ? 'Done' : 'Edit'}
+                        </button>
+                    )}
                 </div>
+
+                {isEditing ? (
+                    <textarea
+                        value={editableTranscript}
+                        onChange={handleEditChange}
+                        style={{
+                            ...styles.transcriptBox,
+                            background: '#fffbea',
+                            width: '100%',
+                            height: '100px',
+                            resize: 'vertical',
+                            border: '1px solid #ccc',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                        }}
+                    />
+                ) : (
+                    <div style={styles.transcriptBox}>
+                        {displayText || <em>Start speaking to see the transcript...</em>}
+                    </div>
+                )}
             </div>
 
             <hr style={styles.divider} />
@@ -486,43 +568,40 @@ const styles: { [key: string]: React.CSSProperties } = {
         wordBreak: 'break-word',
     },
     responseBox: {
-        background: '#e2ffe2',
+        background: '#eaf4ff',
         padding: '10px',
         borderRadius: '5px',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-        maxHeight: '300px',
-        overflowY: 'auto',
         marginTop: '5px',
+        whiteSpace: 'pre-wrap',
     },
     divider: {
         margin: '1rem 0',
+        border: 'none',
+        borderBottom: '1px solid #ddd',
     },
     error: {
-        color: 'red',
-        fontWeight: 'bold',
+        color: '#d9534f',
     },
     modalOverlay: {
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 999,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
     },
     modalContent: {
-        background: "#fff",
-        padding: "20px",
-        borderRadius: "10px",
-        maxWidth: "400px",
-        width: "100%",
-        textAlign: "center",
+        background: '#fff',
+        padding: '20px',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '400px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
     },
 };
 
 export default SpeechToTextWithAPIKey;
-
-
-
-
