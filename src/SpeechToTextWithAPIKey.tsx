@@ -402,22 +402,22 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                         style={styles.input}
                     >
                         <option value="Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang, Docker, Kubernates, Git, Maven, Jenkins, SonarQube - Interview Helper: answer directly without asking clarifying questions.  - Use my uploaded resume stored in backend to answer directly and provide relevant examples from my resume.">
-                            Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang, Docker, Kubernates, Git, Maven, Jenkins, SonarQube - Interview Helper: answer directly without asking clarifying questions.
+                            Full Stack Developer.
                         </option>
                         <option value="Share coding and explanation in Java - Use my uploaded resume stored in backend to tailor examples and explanations to my experience.">
-                            Share coding and explanation in Java - Use my uploaded resume stored in backend to tailor examples and explanations to my experience.
+                            Share coding and explanation in Java.
                         </option>
                         <option value="Coding program in Data Structure Algorithm using Java - Use my uploaded resume stored in backend to provide solutions relevant to my experience.">
-                            Coding program in Data Structure Algorithm using Java - Use my uploaded resume stored in backend to provide solutions relevant to my experience.
+                            Coding program in Data Structure Algorithm using Java.
                         </option>
                         <option value="Leadership Principles - Use my uploaded resume stored in backend to answer leadership questions directly and relate examples to my resume.">
-                            Leadership Principles - Use my uploaded resume stored in backend to answer leadership questions directly and relate examples to my resume.
+                            Leadership Principles.
                         </option>
-                        <option value="Low Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
-                            Low Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.
+                        <option value="Low Level System Design Interview with proper setup coding and everything and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
+                            Low Level Design System.
                         </option>
-                        <option value="High Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
-                            High Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.
+                        <option value="High Level System Design Interview with proper setup coding and everything  - Interview Helper: answer directly without asking clarifying questions.">
+                            High Level Design System.
                         </option>
                     </select>
                 </label>
