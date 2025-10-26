@@ -401,20 +401,23 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                         onChange={(e) => setRole(e.target.value)}
                         style={styles.input}
                     >
-                        <option value="Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang, Docker, Kubernates, Git, Maven, Jenkins, SonarQube - Interview Helper: answer directly without asking clarifying questions.">
+                        <option value="Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang, Docker, Kubernates, Git, Maven, Jenkins, SonarQube - Interview Helper: answer directly without asking clarifying questions.  - Use my uploaded resume stored in backend to answer directly and provide relevant examples from my resume.">
                             Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang, Docker, Kubernates, Git, Maven, Jenkins, SonarQube - Interview Helper: answer directly without asking clarifying questions.
                         </option>
-                        <option value="Coding program in Data Structure Algorithm using Java - LeetCode problems think medium and hard level program and Java code implementation and you need to help others too - Interview Helper: answer directly without asking clarifying questions.">
-                            Coding program in Data Structure Algorithm using Java - LeetCode problems think medium and hard level program and Java code implementation and you need to help others too - Interview Helper: answer directly without asking clarifying questions.
+                        <option value="Share coding and explanation in Java - Use my uploaded resume stored in backend to tailor examples and explanations to my experience.">
+                            Share coding and explanation in Java - Use my uploaded resume stored in backend to tailor examples and explanations to my experience.
                         </option>
-                        <option value="Low Level Design Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
-                            Low Level Design Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.
+                        <option value="Coding program in Data Structure Algorithm using Java - Use my uploaded resume stored in backend to provide solutions relevant to my experience.">
+                            Coding program in Data Structure Algorithm using Java - Use my uploaded resume stored in backend to provide solutions relevant to my experience.
                         </option>
-                        <option value="High Level Design Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
-                            High Level Design Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.
+                        <option value="Leadership Principles - Use my uploaded resume stored in backend to answer leadership questions directly and relate examples to my resume.">
+                            Leadership Principles - Use my uploaded resume stored in backend to answer leadership questions directly and relate examples to my resume.
                         </option>
-                        <option value="Leadership Principles - Interview Helper: answer directly without asking clarifying questions.">
-                            Leadership Principles - Interview Helper: answer directly without asking clarifying questions.
+                        <option value="Low Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
+                            Low Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.
+                        </option>
+                        <option value="High Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.">
+                            High Level Design System Interview and all other questions too - Interview Helper: answer directly without asking clarifying questions.
                         </option>
                     </select>
                 </label>
