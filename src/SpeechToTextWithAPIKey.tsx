@@ -404,6 +404,18 @@ const SpeechToTextWithAPIKey: React.FC = () => {
                         <option value="Full Stack Developer - HTML, CSS, React, Java, SpringBoot, NodeJs, GoLang, Docker, Kubernates, Git, Maven, Jenkins, SonarQube - Interview Helper: answer directly without asking clarifying questions.  - Use my uploaded resume stored in backend to answer directly and provide relevant examples from my resume.">
                             Full Stack Developer.
                         </option>
+                        <option value="You are an Online Assessment Expert. Identify the correct Answer for the question.">
+                            Online Assessment
+                        </option>
+                        <option value="You are an MCQ Helper. Analyze the question, explain each option, identify the correct answer with reasoning, and provide tips for similar questions.">
+                            MCQ Helper
+                        </option>
+                        <option value="You are a JavaScript expert. Provide JavaScript code examples and explanations.">
+                            JavaScript Coding
+                        </option>
+                        <option value="You are a Java expert. Provide Java code examples and explanations.">
+                            Java Coding
+                        </option>
                         <option value="Share coding and explanation in Java - Use my uploaded resume stored in backend to tailor examples and explanations to my experience.">
                             Share coding and explanation in Java.
                         </option>
@@ -660,4 +672,5 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
 
