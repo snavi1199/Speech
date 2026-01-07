@@ -85,10 +85,10 @@ const SpeechToTextWithAPIKey: React.FC = () => {
             setError('Please enter your role first.');
             return;
         }
-        if (!apiKey.trim()) {
-            setError('Please enter your API key.');
-            return;
-        }
+        // if (!apiKey.trim()) {
+        //     setError('Please enter your API key.');
+        //     return;
+        // }
 
         // 🧩 Combine saved prompts if remembering context
         let combinedPrompt = currentText;
@@ -660,3 +660,4 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default SpeechToTextWithAPIKey;
+
